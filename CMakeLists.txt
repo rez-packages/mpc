@@ -1,0 +1,47 @@
+include(RezBuild)
+include(RezRepository)
+include(ExternalProject)
+
+set(PROJECT_NAME $ENV{REZ_BUILD_PROJECT_NAME})
+set(PROJECT_VERSION $ENV{REZ_BUILD_PROJECT_VERSION})
+set(PROJECT_LIBRARIES ${PROJECT_NAME})
+
+file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+
+set(URL ftp://ftp.gnu.org/gnu/${PROJECT_NAME}/${PROJECT_NAME}-${PROJECT_VERSION}.tar.gz)
+set(ARCHIVE_REL libs/${PROJECT_NAME}-${PROJECT_VERSION}.tar.gz)
+
+if(NOT EXISTS $ENV{REZ_REPO_PAYLOAD_DIR}/${ARCHIVE_REL})
+    file(DOWNLOAD ${URL} $ENV{REZ_REPO_PAYLOAD_DIR}/${ARCHIVE_REL})
+endif()
+
+if(${REZ_BUILD_INSTALL})
+	set(INSTALL_COMMAND make -j${REZ_BUILD_THREAD_COUNT} install)
+else()
+	set(INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "install skipped")
+endif()
+
+set(CONFIGURE_COMMAND ./configure --prefix=${CMAKE_INSTALL_PREFIX} --with-gmp=$ENV{REZ_GMP_ROOT} --with-mpfr=$ENV{REZ_MPFR_ROOT})
+message(STATUS "Configure Command: ${CONFIGURE_COMMAND}")
+
+rez_set_archive(
+	ARCHIVE
+	${ARCHIVE_REL}
+	${URL}
+)
+
+
+
+ExternalProject_Add(
+	${PROJECT_NAME}
+	URL ${ARCHIVE}
+	UPDATE_COMMAND ""
+	CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
+	BUILD_IN_SOURCE 1
+	BUILD_COMMAND make -j$ENV{REZ_BUILD_THREAD_COUNT}
+	INSTALL_COMMAND ${INSTALL_COMMAND}
+
+)
+
+
+install(CODE "message(STATUS \"${PROJECT_NAME}-${PROJECT_VERSION} installed.\")")
